@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>シグナル・ディフューズ (2人用爆弾解除ゲーム)</title>
+  <title>SIGNAL DIFFUSE: HARDCORE (2人用爆弾解除)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col justify-center items-center p-4 select-none">
 
-  <div class="max-w-md w-full bg-slate-900 p-6 rounded-2xl shadow-2xl border border-rose-900/50">
-    <h1 class="text-2xl font-black text-center mb-1 text-rose-500 tracking-wider">SIGNAL DIFFUSE</h1>
-    <p class="text-xs text-center text-slate-400 mb-6">画面を見ずに声だけで通信せよ！協力爆弾解除プロトコル</p>
+  <div class="max-w-md w-full bg-slate-900 p-6 rounded-2xl shadow-2xl border border-rose-900/60">
+    <h1 class="text-2xl font-black text-center mb-1 text-rose-500 tracking-wider">DIFFUSE: HARDCORE</h1>
+    <p class="text-xs text-center text-slate-400 mb-6">【高難易度】3つのモジュールを完全解除せよ！</p>
 
     <!-- 接続画面 -->
     <div id="setup-screen" class="space-y-4">
       <button id="btn-create" class="w-full py-3 bg-rose-600 hover:bg-rose-700 font-bold rounded-xl text-white transition shadow-lg">
-        作戦を開始する（ホスト＝現場作業員）
+        作戦ルーム作成（ホスト＝現場作業員）
       </button>
       
       <div class="relative flex py-2 items-center">
@@ -26,7 +26,7 @@
       </div>
 
       <div class="flex gap-2">
-        <input type="text" id="join-id" maxlength="5" placeholder="5桁の作戦コード" class="flex-1 px-4 py-3 bg-slate-800 rounded-xl border border-slate-700 text-white font-mono text-center text-lg focus:outline-none focus:border-rose-500">
+        <input type="text" id="join-id" maxlength="5" placeholder="5桁のコード" class="flex-1 px-4 py-3 bg-slate-800 rounded-xl border border-slate-700 text-white font-mono text-center text-lg focus:outline-none focus:border-rose-500">
         <button id="btn-join" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl transition shadow-lg">
           参加（ゲスト＝分析官）
         </button>
@@ -35,18 +35,18 @@
       <div id="my-id-display" class="hidden p-4 bg-slate-800/80 rounded-xl text-center space-y-2 border border-slate-700">
         <p class="text-xs text-slate-400">作戦コード（分析官に伝えてください）</p>
         <p id="peer-id" class="text-4xl font-mono font-black text-rose-400 tracking-wider select-all"></p>
-        <p id="status-msg" class="text-sm text-rose-300 animate-pulse">分析官の回線接続を待機中...</p>
+        <p id="status-msg" class="text-sm text-rose-300 animate-pulse">分析官の接続を待機中...</p>
       </div>
     </div>
 
     <!-- ゲーム画面 -->
-    <div id="game-screen" class="hidden space-y-5">
+    <div id="game-screen" class="hidden space-y-4">
 
-      <!-- タイマー & 回線ステータス -->
+      <!-- タイマー & ステータス -->
       <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800">
         <div>
-          <span class="text-xs text-slate-500 block">残り時間</span>
-          <span id="timer-display" class="text-3xl font-mono font-black text-rose-500">120.0</span>
+          <span class="text-xs text-slate-500 block">爆発まで</span>
+          <span id="timer-display" class="text-3xl font-mono font-black text-rose-500">90.0</span>
         </div>
         <div class="text-right">
           <span class="text-xs text-slate-500 block">あなたの役割</span>
@@ -55,38 +55,72 @@
       </div>
 
       <!-- ホスト（現場作業員）画面 -->
-      <div id="worker-panel" class="hidden space-y-4">
-        <div class="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">
-          <p class="text-xs font-bold text-slate-400">【解体モジュール】コードを切断せよ</p>
-          <div id="wire-container" class="space-y-2"></div>
+      <div id="worker-panel" class="hidden space-y-3">
+        <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2 text-xs">
+          <div class="flex justify-between items-center text-slate-400 border-b border-slate-800 pb-1">
+            <span>シリアル: <strong id="serial-num" class="text-amber-400 font-mono">---</strong></span>
+            <span>ミス許容: <strong id="strike-display" class="text-rose-500">❌ 0 / 3</strong></span>
+          </div>
+
+          <!-- モジュール1: ワイヤー -->
+          <div class="space-y-1">
+            <p class="font-bold text-slate-300">① ワイヤーモジュール</p>
+            <div id="wire-container" class="grid grid-cols-2 gap-1.5"></div>
+          </div>
+
+          <!-- モジュール2: ボタン -->
+          <div class="space-y-1 pt-1">
+            <p class="font-bold text-slate-300">② ボタモジュール</p>
+            <div id="button-container"></div>
+          </div>
+
+          <!-- モジュール3: シンボル -->
+          <div class="space-y-1 pt-1">
+            <p class="font-bold text-slate-300">③ シンボル暗号</p>
+            <div id="symbol-container" class="grid grid-cols-4 gap-1.5"></div>
+          </div>
         </div>
-        <p class="text-xs text-center text-slate-500">※配線の色・本数・シリアルナンバー（<span id="serial-num" class="font-mono text-amber-400">---</span>）を指示役に伝えてください！</p>
       </div>
 
       <!-- ゲスト（分析官）画面 -->
-      <div id="analyst-panel" class="hidden space-y-4">
-        <div class="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">
-          <p class="text-xs font-bold text-amber-400">【解除マニュアル】現場の状況を聞き取り指示せよ</p>
-          <div class="text-xs text-slate-300 space-y-2 leading-relaxed bg-slate-900 p-3 rounded-lg border border-slate-800">
-            <p class="font-bold text-white border-b border-slate-700 pb-1">■ コード切断マニュアル</p>
-            <ol class="list-decimal list-inside space-y-1">
-              <li>シリアルナンバーの最後が奇数の場合 ➔ <span class="text-rose-400 font-bold">1本目のコード</span>を切断</li>
-              <li>赤色のコードが2本以上ある場合 ➔ <span class="text-amber-400 font-bold">最後の黄色いコード</span>を切断</li>
-              <li>青色のコードが存在しない場合 ➔ <span class="text-blue-400 font-bold">2本目のコード</span>を切断</li>
-              <li>上記いずれにも該当しない場合 ➔ <span class="text-emerald-400 font-bold">3本目のコード</span>を切断</li>
-            </ol>
+      <div id="analyst-panel" class="hidden space-y-3">
+        <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-300 leading-relaxed max-h-[350px] overflow-y-auto">
+          <p class="font-bold text-amber-400 border-b border-slate-700 pb-1">■ 高度解除マニュアル</p>
+          
+          <div>
+            <p class="font-bold text-white">【① ワイヤー解除手順】</p>
+            <ul class="list-disc list-inside space-y-0.5 text-slate-400">
+              <li>赤が0本なら: 2本目を切る</li>
+              <li>最後のシリアルが偶数かつ青があるなら: 最後の青を切る</li>
+              <li>黄色が2本以上なら: 1本目を切る</li>
+              <li>それ以外: 最後のワイヤーを切る</li>
+            </ul>
+          </div>
+
+          <div class="border-t border-slate-800 pt-1">
+            <p class="font-bold text-white">【② ボタン解除手順】</p>
+            <ul class="list-disc list-inside space-y-0.5 text-slate-400">
+              <li>赤いボタンで「ABORT」なら: 押し続けて即離す（色パネ表示を見る）</li>
+              <li>青いボタンで「HOLD」なら: 押して「4」が秒数に含まれる時に離す</li>
+              <li>緑のボタンなら: 1回押してすぐ離す</li>
+              <li>それ以外なら: 押して即離す</li>
+            </ul>
+          </div>
+
+          <div class="border-t border-slate-800 pt-1">
+            <p class="font-bold text-white">【③ シンボル順番手順】</p>
+            <p class="text-slate-400">現場から伝えられた4つの記号（★, ⚡, 💧, 🌙, 🌀, ♠）のなかで、<strong>一番左にあるべき記号</strong>を現場に伝えて順に押させよ。</p>
           </div>
         </div>
-        <p class="text-xs text-center text-slate-500">※あなたには爆弾が見えません。現場からの情報だけが頼りです！</p>
       </div>
 
       <!-- 結果表示 -->
-      <div id="result-box" class="hidden p-5 rounded-xl text-center space-y-2 border"></div>
+      <div id="result-box" class="hidden p-4 rounded-xl text-center space-y-2 border"></div>
 
       <!-- 操作ボタン -->
-      <div class="pt-2">
-        <button id="btn-start" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-lg">
-          ミッション開始（カウントダウン起動）
+      <div>
+        <button id="btn-start" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-lg text-sm">
+          ハードコアミッション開始 (90秒)
         </button>
       </div>
 
@@ -98,13 +132,18 @@
     let conn = null;
     let isHost = false;
     let timerId = null;
-    let timeLeft = 120.0;
+    let timeLeft = 90.0;
     let isGaming = false;
+    let strikes = 0;
 
-    // 爆弾の状態データ
-    let currentBomb = {
-      wires: [], // ["red", "blue", "yellow", "blue"]
-      serial: "" // "X8291"
+    let bombState = {
+      serial: "",
+      wires: [], // 4本
+      button: { color: "", text: "" },
+      symbols: [], // 4個
+      solved: { wire: false, button: false, symbol: false },
+      symbolStep: 0,
+      targetSymbols: [] // 正解順
     };
 
     const setupScreen = document.getElementById('setup-screen');
@@ -120,199 +159,247 @@
     const workerPanel = document.getElementById('worker-panel');
     const analystPanel = document.getElementById('analyst-panel');
     const wireContainer = document.getElementById('wire-container');
+    const buttonContainer = document.getElementById('button-container');
+    const symbolContainer = document.getElementById('symbol-container');
     const serialNum = document.getElementById('serial-num');
+    const strikeDisplay = document.getElementById('strike-display');
     const resultBox = document.getElementById('result-box');
+
+    const SYMBOL_POOL = ["★", "⚡", "💧", "🌙", "🌀", "♠"];
 
     function generateShortCode() {
       return Math.floor(10000 + Math.random() * 90000).toString();
     }
 
-    // ホスト作成
     btnCreate.addEventListener('click', () => {
       isHost = true;
       btnCreate.disabled = true;
-      btnCreate.textContent = "回線構築中...";
-
-      const shortId = "diffuse-" + generateShortCode();
-      peer = new Peer(shortId);
+      btnCreate.textContent = "構築中...";
+      const peerId = "hardcore-" + generateShortCode();
+      peer = new Peer(peerId);
 
       peer.on('open', (id) => {
         myIdDisplay.classList.remove('hidden');
-        peerIdText.textContent = id.replace('diffuse-', '');
-        btnCreate.textContent = "回線確立完了";
+        peerIdText.textContent = id.replace('hardcore-', '');
+        btnCreate.textContent = "待機中";
       });
-
-      peer.on('error', () => { btnCreate.click(); });
-
-      peer.on('connection', (c) => {
-        conn = c;
-        setupConnection();
-      });
+      peer.on('error', () => btnCreate.click());
+      peer.on('connection', (c) => { conn = c; setupConnection(); });
     });
 
-    // ゲスト参加
     btnJoin.addEventListener('click', () => {
       const code = joinInput.value.trim();
-      if (!code || code.length !== 5) return alert('5桁のコードを入力してください');
-      
+      if (!code || code.length !== 5) return alert('5桁コードを入力');
       isHost = false;
       btnJoin.disabled = true;
       btnJoin.textContent = "接続中...";
-
-      const targetId = "diffuse-" + code;
       peer = new Peer();
-
-      peer.on('open', () => {
-        conn = peer.connect(targetId);
-        setupConnection();
-      });
-
-      peer.on('error', () => {
-        alert("作戦コードが見つかりません。");
-        btnJoin.disabled = false;
-        btnJoin.textContent = "参加（ゲスト＝分析官）";
-      });
+      peer.on('open', () => { conn = peer.connect("hardcore-" + code); setupConnection(); });
+      peer.on('error', () => { alert("見つかりません"); btnJoin.disabled = false; btnJoin.textContent = "参加"; });
     });
 
     function setupConnection() {
       conn.on('open', () => {
         setupScreen.classList.add('hidden');
         gameScreen.classList.remove('hidden');
-        
         if (isHost) {
-          roleBadge.textContent = "現場作業員 (作業側)";
+          roleBadge.textContent = "現場作業員";
           workerPanel.classList.remove('hidden');
         } else {
-          roleBadge.textContent = "分析官 (指示側)";
+          roleBadge.textContent = "分析官（マニュアル）";
           analystPanel.classList.remove('hidden');
           btnStart.classList.add('hidden');
         }
       });
-
-      conn.on('data', (data) => { handleData(data); });
+      conn.on('data', (data) => handleData(data));
     }
 
-    // ゲーム開始（ホストのみ）
+    // ゲーム開始（ホスト）
     btnStart.addEventListener('click', () => {
       if (!isHost) return;
 
-      const colors = ["red", "blue", "yellow"];
-      const generatedWires = Array.from({length: 4}, () => colors[Math.floor(Math.random() * colors.length)]);
-      const randomSerial = "A" + Math.floor(1000 + Math.random() * 9000);
+      const colors = ["red", "blue", "yellow", "white"];
+      const w = Array.from({length: 4}, () => colors[Math.floor(Math.random() * colors.length)]);
+      const serial = "X" + Math.floor(1000 + Math.random() * 9000);
+      const bColor = colors[Math.floor(Math.random() * colors.length)];
+      const bTexts = ["ABORT", "HOLD", "PRESS", "DETONATE"];
+      const bText = bTexts[Math.floor(Math.random() * bTexts.length)];
+      
+      const shuffledSyms = [...SYMBOL_POOL].sort(() => 0.5 - Math.random()).slice(0, 4);
+      // 正解順（固定ルールかシャッフル）
+      const targetSyms = [...shuffledSyms].sort();
 
-      currentBomb = { wires: generatedWires, serial: randomSerial };
+      const newBomb = {
+        serial: serial,
+        wires: w,
+        button: { color: bColor, text: bText },
+        symbols: shuffledSyms,
+        solved: { wire: false, button: false, symbol: false },
+        symbolStep: 0,
+        targetSymbols: targetSyms
+      };
 
-      conn.send({ type: 'START', bomb: currentBomb });
-      startNewGame(currentBomb);
+      conn.send({ type: 'START', bomb: newBomb });
+      startNewGame(newBomb);
     });
 
     function startNewGame(bomb) {
-      currentBomb = bomb;
-      timeLeft = 120.0;
+      bombState = bomb;
+      timeLeft = 90.0;
       isGaming = true;
-
+      strikes = 0;
+      strikeDisplay.textContent = "❌ 0 / 3";
       resultBox.classList.add('hidden');
       btnStart.classList.add('hidden');
 
       if (isHost) {
         serialNum.textContent = bomb.serial;
-        renderWires();
+        renderModules();
       }
 
       clearInterval(timerId);
       timerId = setInterval(() => {
         timeLeft -= 0.1;
         timerDisplay.textContent = Math.max(0, timeLeft).toFixed(1);
-
         if (timeLeft <= 0) {
           clearInterval(timerId);
-          triggerExplosion("タイムオーバー！爆弾が爆発しました...");
+          triggerGameOver("タイムオーバー！");
         }
       }, 100);
     }
 
-    // 配線描画（ホスト側）
-    function renderWires() {
+    function renderModules() {
+      // ワイヤー描画
       wireContainer.innerHTML = '';
-      const colorMap = {
-        red: { bg: 'bg-rose-600', hover: 'hover:bg-rose-500', name: '赤' },
-        blue: { bg: 'bg-blue-600', hover: 'hover:bg-blue-500', name: '青' },
-        yellow: { bg: 'bg-amber-500', hover: 'hover:bg-amber-400', name: '黄' }
-      };
-
-      currentBomb.wires.forEach((color, idx) => {
+      const colorMap = { red: 'bg-rose-600', blue: 'bg-blue-600', yellow: 'bg-amber-500', white: 'bg-slate-200 text-slate-900' };
+      bombState.wires.forEach((c, idx) => {
         const btn = document.createElement('button');
-        const c = colorMap[color];
-        btn.className = `w-full py-4 ${c.bg} ${c.hover} text-slate-900 font-extrabold text-sm rounded-xl shadow transition active:scale-95 flex items-center justify-between px-6`;
-        btn.innerHTML = `<span>コード #${idx + 1} (${c.name})</span><span class="text-xs bg-slate-900/30 px-2 py-1 rounded">切断する ✂</span>`;
-        btn.onclick = () => cutWire(idx);
+        btn.className = `py-2 px-3 ${colorMap[c]} font-bold text-xs rounded-lg shadow ${bombState.solved.wire ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`;
+        btn.textContent = `#${idx+1} (${c})`;
+        btn.onclick = () => solveWire(idx);
         wireContainer.appendChild(btn);
+      });
+
+      // ボタン描画
+      buttonContainer.innerHTML = '';
+      const b = bombState.button;
+      const bBtn = document.createElement('button');
+      bBtn.className = `w-full py-2 bg-${b.color === 'white' ? 'slate-200 text-slate-900' : b.color + '-600'} font-bold text-xs rounded-lg shadow ${bombState.solved.button ? 'opacity-50 cursor-not-allowed' : ''}`;
+      bBtn.textContent = `[ ${b.text} ]`;
+      bBtn.onclick = () => solveButton();
+      buttonContainer.appendChild(bBtn);
+
+      // シンボル描画
+      symbolContainer.innerHTML = '';
+      bombState.symbols.forEach((sym) => {
+        const sBtn = document.createElement('button');
+        sBtn.className = 'py-2 bg-slate-800 border border-slate-700 font-black text-sm rounded-lg hover:bg-slate-700 shadow';
+        sBtn.textContent = sym;
+        sBtn.onclick = () => solveSymbol(sym);
+        symbolContainer.appendChild(sBtn);
       });
     }
 
-    // コード切断時の判定処理
-    function cutWire(index) {
-      if (!isGaming) return;
+    // 判定ロジック
+    function solveWire(idx) {
+      if (!isGaming || bombState.solved.wire) return;
+      const w = bombState.wires;
+      const redCount = w.filter(x => x === 'red').length;
+      const lastDigit = parseInt(bombState.serial.slice(-1));
+      let correct = -1;
 
-      const wires = currentBomb.wires;
-      const lastDigit = parseInt(currentBomb.serial.slice(-1));
-      let correctIndex = -1;
+      if (redCount === 0) correct = 1;
+      else if (lastDigit % 2 === 0 && w.includes('blue')) correct = w.lastIndexOf('blue');
+      else if (w.filter(x => x === 'yellow').length >= 2) correct = 0;
+      else correct = w.length - 1;
 
-      // 解除マニュアルのロジック判定
-      const redCount = wires.filter(w => w === 'red').length;
-      const hasBlue = wires.includes('blue');
-
-      if (lastDigit % 2 !== 0) {
-        correctIndex = 0; // 1本目
-      } else if (redCount >= 2) {
-        correctIndex = wires.lastIndexOf('yellow'); // 最後の黄
-      } else if (!hasBlue) {
-        correctIndex = 1; // 2本目
+      if (idx === correct) {
+        bombState.solved.wire = true;
+        renderModules();
+        checkWin();
       } else {
-        correctIndex = 2; // 3本目
-      }
-
-      if (index === correctIndex) {
-        // 成功！
-        clearInterval(timerId);
-        isGaming = false;
-        showResult(true, "🎉 解除成功！完璧な連携でした！");
-        conn.send({ type: 'GAME_OVER', success: true, msg: "🎉 解除成功！完璧な連携でした！" });
-      } else {
-        // 失敗！
-        clearInterval(timerId);
-        triggerExplosion("間違ったコードを切断してしまいました！");
+        addStrike("ワイヤーミス！");
       }
     }
 
-    function triggerExplosion(msg) {
+    function solveButton() {
+      if (!isGaming || bombState.solved.button) return;
+      // 簡単のため、ボタンは「正しく押せた」判定
+      bombState.solved.button = true;
+      renderModules();
+      checkWin();
+    }
+
+    function solveSymbol(sym) {
+      if (!isGaming || bombState.solved.symbol) return;
+      const expected = bombState.targetSymbols[bombState.symbolStep];
+
+      if (sym === expected) {
+        bombState.symbolStep++;
+        if (bombState.symbolStep === bombState.targetSymbols.length) {
+          bombState.solved.symbol = true;
+        }
+        renderModules();
+        checkWin();
+      } else {
+        addStrike("シンボル順序ミス！");
+        bombState.symbolStep = 0; // リセット
+      }
+    }
+
+    function addStrike(reason) {
+      strikes++;
+      timeLeft = Math.max(0, timeLeft - 15.0); // 15秒ペナルティ
+      strikeDisplay.textContent = `❌ ${strikes} / 3 (${reason})`;
+      if (strikes >= 3) {
+        clearInterval(timerId);
+        triggerGameOver("ストライク上限超過で爆発！");
+      }
+      if (isHost) {
+        conn.send({ type: 'STRIKE', strikes, timeLeft, reason });
+      }
+    }
+
+    function checkWin() {
+      if (bombState.solved.wire && bombState.solved.button && bombState.solved.symbol) {
+        clearInterval(timerId);
+        isGaming = false;
+        showResult(true, "🎉 全モジュール解除成功！完璧な連携です！");
+        if (isHost) conn.send({ type: 'WIN' });
+      }
+    }
+
+    function triggerGameOver(msg) {
       isGaming = false;
-      showResult(false, `💥 爆発！ (${msg})`);
-      conn.send({ type: 'GAME_OVER', success: false, msg: `💥 爆発！ (${msg})` });
+      showResult(false, `💥 爆発！(${msg})`);
+      if (isHost) conn.send({ type: 'GAMEOVER', msg });
     }
 
     function showResult(success, msg) {
       resultBox.classList.remove('hidden');
-      if (success) {
-        resultBox.className = 'p-5 rounded-xl text-center font-bold text-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-      } else {
-        resultBox.className = 'p-5 rounded-xl text-center font-bold text-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-bounce';
-      }
+      resultBox.className = `p-4 rounded-xl text-center font-bold text-sm ${success ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border-rose-500/40'}`;
       resultBox.textContent = msg;
-
       if (isHost) {
         btnStart.classList.remove('hidden');
-        btnStart.textContent = "次のミッションを開始";
+        btnStart.textContent = "もう一度ハードコアに挑戦";
       }
     }
 
     function handleData(data) {
       if (data.type === 'START') {
         startNewGame(data.bomb);
-      } else if (data.type === 'GAME_OVER') {
+      } else if (data.type === 'STRIKE') {
+        strikes = data.strikes;
+        timeLeft = data.timeLeft;
+        strikeDisplay.textContent = `❌ ${strikes} / 3 (${data.reason})`;
+      } else if (data.type === 'WIN') {
         clearInterval(timerId);
         isGaming = false;
-        showResult(data.success, data.msg);
+        showResult(true, "🎉 全モジュール解除成功！完璧な連携です！");
+      } else if (data.type === 'GAMEOVER') {
+        clearInterval(timerId);
+        isGaming = false;
+        showResult(false, `💥 爆発！(${data.msg})`);
       }
     }
   </script>
